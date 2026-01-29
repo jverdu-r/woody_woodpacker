@@ -11,6 +11,8 @@
 #include <sys/stat.h>
 #include "../includdes/libft/libft.h"
 
+#define WOODY_STUB_SIZE 256
+
 typedef struct s_elf_ctx
 {
 	void		*base;
@@ -18,6 +20,9 @@ typedef struct s_elf_ctx
 	Elf64_Ehdr	*ehdr;
 	Elf64_Phdr	*phdrs;
 	Elf64_Phdr	*text_phdr;
+	size_t		inject_off;
+	Elf64_Addr	inject_vaddr;
+	size_t		inject_size;
 }	t_elf_ctx;
 
 typedef struct s_elf32_ctx
@@ -27,11 +32,18 @@ typedef struct s_elf32_ctx
 	Elf32_Ehdr	*ehdr;
 	Elf32_Phdr	*phdrs;
 	Elf32_Phdr	*text_phdr;
+	size_t		inject_off;
+	Elf32_Addr	inject_vaddr;
+	size_t		inject_size;
 }	t_elf32_ctx;
 
 int	parse_elf64(int fd, t_elf_ctx *ctx);
 int	parse_elf32(int fd, t_elf32_ctx *ctx);
 void	cleanup_elf_ctx(t_elf_ctx *ctx);
 void	cleanup_elf32_ctx(t_elf32_ctx *ctx);
+int	select_injection_site64(t_elf_ctx *ctx, size_t stub_size);
+#ifdef BONUS
+int	select_injection_site32(t_elf32_ctx *ctx, size_t stub_size);
+#endif
 
 #endif

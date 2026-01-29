@@ -77,6 +77,42 @@ int	parse_elf64(int fd, t_elf_ctx *ctx)
 	return (0);
 }
 
+int	select_injection_site64(t_elf_ctx *ctx, size_t stub_size)
+{
+	size_t		file_off;
+	Elf64_Addr	vaddr;
+	size_t		next_off;
+	int			idx;
+
+	if (!ctx || !ctx->text_phdr)
+		return (-1);
+	if (stub_size == 0)
+		return (-1);
+	file_off = (size_t)ctx->text_phdr->p_offset
+		+ (size_t)ctx->text_phdr->p_filesz;
+	if (file_off > ctx->file_size)
+		return (-1);
+	next_off = (size_t)-1;
+	idx = 0;
+	while (idx < ctx->ehdr->e_phnum)
+	{
+		size_t	seg_off;
+
+		seg_off = (size_t)ctx->phdrs[idx].p_offset;
+		if (seg_off > file_off && seg_off < next_off)
+			next_off = seg_off;
+		idx++;
+	}
+	if (next_off != (size_t)-1 && file_off + stub_size > next_off)
+		return (-1);
+	vaddr = (Elf64_Addr)ctx->text_phdr->p_vaddr
+		+ (Elf64_Addr)ctx->text_phdr->p_memsz;
+	ctx->inject_off = file_off;
+	ctx->inject_vaddr = vaddr;
+	ctx->inject_size = stub_size;
+	return (0);
+}
+
 int	parse_elf32(int fd, t_elf32_ctx *ctx)
 {
 	struct stat	st;
@@ -126,3 +162,41 @@ int	parse_elf32(int fd, t_elf32_ctx *ctx)
 		return (-1);
 	return (0);
 }
+
+#ifdef BONUS
+int	select_injection_site32(t_elf32_ctx *ctx, size_t stub_size)
+{
+	size_t		file_off;
+	Elf32_Addr	vaddr;
+	size_t		next_off;
+	int			idx;
+
+	if (!ctx || !ctx->text_phdr)
+		return (-1);
+	if (stub_size == 0)
+		return (-1);
+	file_off = (size_t)ctx->text_phdr->p_offset
+		+ (size_t)ctx->text_phdr->p_filesz;
+	if (file_off > ctx->file_size)
+		return (-1);
+	next_off = (size_t)-1;
+	idx = 0;
+	while (idx < ctx->ehdr->e_phnum)
+	{
+		size_t	seg_off;
+
+		seg_off = (size_t)ctx->phdrs[idx].p_offset;
+		if (seg_off > file_off && seg_off < next_off)
+			next_off = seg_off;
+		idx++;
+	}
+	if (next_off != (size_t)-1 && file_off + stub_size > next_off)
+		return (-1);
+	vaddr = (Elf32_Addr)ctx->text_phdr->p_vaddr
+		+ (Elf32_Addr)ctx->text_phdr->p_memsz;
+	ctx->inject_off = file_off;
+	ctx->inject_vaddr = vaddr;
+	ctx->inject_size = stub_size;
+	return (0);
+}
+#endif

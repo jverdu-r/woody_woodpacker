@@ -31,7 +31,10 @@ static int	dispatch_parser(int fd)
 {
 	unsigned char	ident[EI_NIDENT];
 	t_elf_ctx		ctx64;
+#ifdef BONUS
 	t_elf32_ctx		ctx32;
+#endif
+	const size_t	stub_size = WOODY_STUB_SIZE;
 
 	if (read_ident(fd, ident) < 0)
 		return (-1);
@@ -42,16 +45,28 @@ static int	dispatch_parser(int fd)
 	{
 		if (parse_elf64(fd, &ctx64) < 0)
 			return (-1);
+		if (select_injection_site64(&ctx64, stub_size) < 0)
+		{
+			cleanup_elf_ctx(&ctx64);
+			return (-1);
+		}
 		cleanup_elf_ctx(&ctx64);
 		return (0);
 	}
+#ifdef BONUS
 	if (ident[EI_CLASS] == ELFCLASS32)
 	{
 		if (parse_elf32(fd, &ctx32) < 0)
 			return (-1);
+		if (select_injection_site32(&ctx32, stub_size) < 0)
+		{
+			cleanup_elf32_ctx(&ctx32);
+			return (-1);
+		}
 		cleanup_elf32_ctx(&ctx32);
 		return (0);
 	}
+#endif
 	return (-1);
 }
 
@@ -69,7 +84,7 @@ int	main(int argc, char **argv)
 		return (1);
 	if (dispatch_parser(fd) < 0)
 	{
-		printf("Unsupported or invalid ELF file.\n");
+		printf("File architecture not suported. x86_64 only\n");
 		close(fd);
 		return (1);
 	}
