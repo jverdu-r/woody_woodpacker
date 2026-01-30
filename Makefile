@@ -11,9 +11,14 @@ LIBFT = $(LIBFT_DIR)/libft.a
 
 SRCS = \
 	$(SRC_DIR)/main.c \
-	$(SRC_DIR)/parse.c
+	$(SRC_DIR)/parse.c \
+	$(SRC_DIR)/pack.c
 
-OBJS = $(SRCS:.c=.o)
+ASMS = \
+	$(SRC_DIR)/stub64.S \
+	$(SRC_DIR)/stub32.S
+
+OBJS = $(SRCS:.c=.o) $(ASMS:.S=.o)
 
 CPPFLAGS = -I$(INC_DIR) -I$(LIBFT_DIR)
 
@@ -27,6 +32,9 @@ $(NAME): $(LIBFT) $(OBJS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+
+%.o: %.S
+	$(CC) $(CFLAGS) -c $< -o $@
 
 bonus: CPPFLAGS += -DBONUS
 bonus: fclean $(LIBFT) $(OBJS)

@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: jverdu-r <marvin@42.fr>                    +#+  +:+       +#+         #
+#    By: jverdu-r <jverdu-r@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/01/24 17:52:10 by jverdu-r          #+#    #+#              #
-#    Updated: 2022/02/15 17:37:30 by jverdu-r         ###   ########.fr        #
+#    Updated: 2026/01/30 15:55:19 by jverdu-r         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -31,7 +31,7 @@ CC		= gcc
 
 RM		= rm -f
 
-CFLAGS	= -Wall -Werror -Wextra -glldb
+CFLAGS	= -Wall -Werror -Wextra
 
 .c.o:
 		${CC} ${CFLAGS} -c $< -o $@

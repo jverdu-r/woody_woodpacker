@@ -50,6 +50,11 @@ static int	dispatch_parser(int fd)
 			cleanup_elf_ctx(&ctx64);
 			return (-1);
 		}
+		if (pack_elf64(fd, &ctx64) < 0)
+		{
+			cleanup_elf_ctx(&ctx64);
+			return (-1);
+		}
 		cleanup_elf_ctx(&ctx64);
 		return (0);
 	}
@@ -63,11 +68,16 @@ static int	dispatch_parser(int fd)
 			cleanup_elf32_ctx(&ctx32);
 			return (-1);
 		}
+		if (pack_elf32(fd, &ctx32) < 0)
+		{
+			cleanup_elf32_ctx(&ctx32);
+			return (-1);
+		}
 		cleanup_elf32_ctx(&ctx32);
 		return (0);
 	}
 #endif
-	return (-1);
+	return (-2);
 }
 
 int	main(int argc, char **argv)
@@ -82,11 +92,19 @@ int	main(int argc, char **argv)
 	fd = open_input_file(argv[1]);
 	if (fd < 0)
 		return (1);
-	if (dispatch_parser(fd) < 0)
 	{
-		printf("File architecture not suported. x86_64 only\n");
-		close(fd);
-		return (1);
+		int	res;
+
+		res = dispatch_parser(fd);
+		if (res < 0)
+		{
+			if (res == -2)
+				printf("File architecture not suported. x86_64 only\n");
+			else
+				printf("Packing failed: %s\n", get_parse_error());
+			close(fd);
+			return (1);
+		}
 	}
 	if (close(fd) < 0)
 	{

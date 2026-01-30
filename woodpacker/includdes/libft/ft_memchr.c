@@ -3,14 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   ft_memchr.c                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jverdu-r <marvin@42.fr>                    +#+  +:+       +#+        */
+/*   By: jverdu-r <jverdu-r@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/01/20 15:37:55 by jverdu-r          #+#    #+#             */
-/*   Updated: 2022/02/11 17:44:52 by jverdu-r         ###   ########.fr       */
+/*   Updated: 2026/01/30 15:55:19 by jverdu-r         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <stdio.h>
+#include <stddef.h>
 
 void	*ft_memchr(const void *s, int c, size_t n)
 {
@@ -22,9 +22,7 @@ void	*ft_memchr(const void *s, int c, size_t n)
 	while (a < n)
 	{
 		if (p[a] == (unsigned char)c)
-		{
-			return (__DECONST(void *, &p[a]));
-		}
+			return ((void *)&p[a]);
 		a++;
 	}
 	return (0);
