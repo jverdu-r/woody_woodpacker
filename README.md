@@ -7,3 +7,9 @@ Mandatory:
 
 Bonus (enables 32-bit parsing):
 	make bonus
+
+## Usage
+Run the packer on an ELF binary (not on C source files):
+	./woody_woodpacker <path-to-elf>
+
+The output file is written as ./woody.

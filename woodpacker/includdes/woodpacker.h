@@ -22,6 +22,7 @@ typedef struct s_elf_ctx
 	Elf64_Ehdr	*ehdr;
 	Elf64_Phdr	*phdrs;
 	Elf64_Phdr	*text_phdr;
+	int			text_phdr_index;
 	size_t		text_off;
 	size_t		text_size;
 	Elf64_Addr	text_vaddr;
@@ -29,6 +30,9 @@ typedef struct s_elf_ctx
 	size_t		inject_off;
 	Elf64_Addr	inject_vaddr;
 	size_t		inject_size;
+	int			inject_shift;
+	int			inject_phdr_index;
+	int			inject_make_exec;
 }	t_elf_ctx;
 
 typedef struct s_elf32_ctx
@@ -38,6 +42,7 @@ typedef struct s_elf32_ctx
 	Elf32_Ehdr	*ehdr;
 	Elf32_Phdr	*phdrs;
 	Elf32_Phdr	*text_phdr;
+	int			text_phdr_index;
 	size_t		text_off;
 	size_t		text_size;
 	Elf32_Addr	text_vaddr;
@@ -45,6 +50,9 @@ typedef struct s_elf32_ctx
 	size_t		inject_off;
 	Elf32_Addr	inject_vaddr;
 	size_t		inject_size;
+	int			inject_shift;
+	int			inject_phdr_index;
+	int			inject_make_exec;
 }	t_elf32_ctx;
 
 int	parse_elf64(int fd, t_elf_ctx *ctx);

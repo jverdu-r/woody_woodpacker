@@ -147,13 +147,19 @@ static int	apply_injection64(unsigned char **buf, size_t *size,
 	size_t		new_size;
 	size_t		stub_len;
 	unsigned char	*dst;
+	Elf64_Ehdr		*ehdr;
+	Elf64_Phdr		*phdrs;
+	Elf64_Shdr		*shdrs;
+	int				idx;
 
 	if (!buf || !*buf || !size || !ctx || !ctx->ehdr || !ctx->text_phdr)
 		return (-1);
 	if (ctx->inject_size == 0)
 		return (-1);
 	new_size = *size;
-	if (ctx->inject_off + ctx->inject_size > new_size)
+	if (ctx->inject_shift)
+		new_size = *size + ctx->inject_size;
+	else if (ctx->inject_off + ctx->inject_size > new_size)
 		new_size = ctx->inject_off + ctx->inject_size;
 	if (new_size != *size)
 	{
@@ -163,7 +169,14 @@ static int	apply_injection64(unsigned char **buf, size_t *size,
 		if (!new_buf)
 			return (-1);
 		ft_bzero(new_buf, new_size);
-		ft_memcpy(new_buf, *buf, *size);
+		if (ctx->inject_shift)
+		{
+			ft_memcpy(new_buf, *buf, ctx->inject_off);
+			ft_memcpy(new_buf + ctx->inject_off + ctx->inject_size,
+				*buf + ctx->inject_off, *size - ctx->inject_off);
+		}
+		else
+			ft_memcpy(new_buf, *buf, *size);
 		free(*buf);
 		*buf = new_buf;
 		*size = new_size;
@@ -174,6 +187,30 @@ static int	apply_injection64(unsigned char **buf, size_t *size,
 	dst = *buf + ctx->inject_off;
 	ft_bzero(dst, ctx->inject_size);
 	ft_memcpy(dst, woody_stub64, stub_len);
+	if (ctx->inject_shift)
+	{
+		ehdr = (Elf64_Ehdr *)(*buf);
+		phdrs = (Elf64_Phdr *)((unsigned char *)(*buf) + ehdr->e_phoff);
+		idx = 0;
+		while (idx < ehdr->e_phnum)
+		{
+			if (phdrs[idx].p_offset >= ctx->inject_off
+				&& idx != ctx->text_phdr_index)
+				phdrs[idx].p_offset += ctx->inject_size;
+			idx++;
+		}
+		if (ehdr->e_shoff >= ctx->inject_off)
+			ehdr->e_shoff += ctx->inject_size;
+		shdrs = (Elf64_Shdr *)((unsigned char *)(*buf) + ehdr->e_shoff);
+		idx = 0;
+		while (idx < ehdr->e_shnum)
+		{
+			if (shdrs[idx].sh_type != SHT_NOBITS
+				&& shdrs[idx].sh_offset >= ctx->inject_off)
+				shdrs[idx].sh_offset += ctx->inject_size;
+			idx++;
+		}
+	}
 	ft_bzero(&meta, sizeof(meta));
 	meta.orig_entry = ctx->ehdr->e_entry;
 	meta.text_vaddr = ctx->entry_in_text ? ctx->text_vaddr : 0;
@@ -190,10 +227,10 @@ static int	apply_injection64(unsigned char **buf, size_t *size,
 	((Elf64_Ehdr *)(*buf))->e_entry = ctx->inject_vaddr;
 	((Elf64_Phdr *)((unsigned char *)(*buf)
 		+ ((Elf64_Ehdr *)(*buf))->e_phoff))
-		[ctx->text_phdr - ctx->phdrs].p_filesz += ctx->inject_size;
+		[ctx->inject_phdr_index].p_filesz += ctx->inject_size;
 	((Elf64_Phdr *)((unsigned char *)(*buf)
 		+ ((Elf64_Ehdr *)(*buf))->e_phoff))
-		[ctx->text_phdr - ctx->phdrs].p_memsz += ctx->inject_size;
+		[ctx->inject_phdr_index].p_memsz += ctx->inject_size;
 	return (0);
 }
 
@@ -205,13 +242,19 @@ static int	apply_injection32(unsigned char **buf, size_t *size,
 	size_t		new_size;
 	size_t		stub_len;
 	unsigned char	*dst;
+	Elf32_Ehdr		*ehdr;
+	Elf32_Phdr		*phdrs;
+	Elf32_Shdr		*shdrs;
+	int				idx;
 
 	if (!buf || !*buf || !size || !ctx || !ctx->ehdr || !ctx->text_phdr)
 		return (-1);
 	if (ctx->inject_size == 0)
 		return (-1);
 	new_size = *size;
-	if (ctx->inject_off + ctx->inject_size > new_size)
+	if (ctx->inject_shift)
+		new_size = *size + ctx->inject_size;
+	else if (ctx->inject_off + ctx->inject_size > new_size)
 		new_size = ctx->inject_off + ctx->inject_size;
 	if (new_size != *size)
 	{
@@ -221,7 +264,14 @@ static int	apply_injection32(unsigned char **buf, size_t *size,
 		if (!new_buf)
 			return (-1);
 		ft_bzero(new_buf, new_size);
-		ft_memcpy(new_buf, *buf, *size);
+		if (ctx->inject_shift)
+		{
+			ft_memcpy(new_buf, *buf, ctx->inject_off);
+			ft_memcpy(new_buf + ctx->inject_off + ctx->inject_size,
+				*buf + ctx->inject_off, *size - ctx->inject_off);
+		}
+		else
+			ft_memcpy(new_buf, *buf, *size);
 		free(*buf);
 		*buf = new_buf;
 		*size = new_size;
@@ -232,6 +282,30 @@ static int	apply_injection32(unsigned char **buf, size_t *size,
 	dst = *buf + ctx->inject_off;
 	ft_bzero(dst, ctx->inject_size);
 	ft_memcpy(dst, woody_stub32, stub_len);
+	if (ctx->inject_shift)
+	{
+		ehdr = (Elf32_Ehdr *)(*buf);
+		phdrs = (Elf32_Phdr *)((unsigned char *)(*buf) + ehdr->e_phoff);
+		idx = 0;
+		while (idx < ehdr->e_phnum)
+		{
+			if (phdrs[idx].p_offset >= ctx->inject_off
+				&& idx != ctx->text_phdr_index)
+				phdrs[idx].p_offset += ctx->inject_size;
+			idx++;
+		}
+		if (ehdr->e_shoff >= ctx->inject_off)
+			ehdr->e_shoff += ctx->inject_size;
+		shdrs = (Elf32_Shdr *)((unsigned char *)(*buf) + ehdr->e_shoff);
+		idx = 0;
+		while (idx < ehdr->e_shnum)
+		{
+			if (shdrs[idx].sh_type != SHT_NOBITS
+				&& shdrs[idx].sh_offset >= ctx->inject_off)
+				shdrs[idx].sh_offset += ctx->inject_size;
+			idx++;
+		}
+	}
 	ft_bzero(&meta, sizeof(meta));
 	meta.orig_entry = ctx->ehdr->e_entry;
 	meta.text_vaddr = ctx->entry_in_text ? ctx->text_vaddr : 0;
@@ -246,12 +320,16 @@ static int	apply_injection32(unsigned char **buf, size_t *size,
 	ft_memcpy(dst + (size_t)(woody_stub32_meta_key - woody_stub32),
 		meta.key, WOODY_KEY_SIZE);
 	((Elf32_Ehdr *)(*buf))->e_entry = ctx->inject_vaddr;
+	if (ctx->inject_make_exec)
+		((Elf32_Phdr *)((unsigned char *)(*buf)
+			+ ((Elf32_Ehdr *)(*buf))->e_phoff))
+			[ctx->inject_phdr_index].p_flags |= PF_X;
 	((Elf32_Phdr *)((unsigned char *)(*buf)
 		+ ((Elf32_Ehdr *)(*buf))->e_phoff))
-		[ctx->text_phdr - ctx->phdrs].p_filesz += ctx->inject_size;
+		[ctx->inject_phdr_index].p_filesz += ctx->inject_size;
 	((Elf32_Phdr *)((unsigned char *)(*buf)
 		+ ((Elf32_Ehdr *)(*buf))->e_phoff))
-		[ctx->text_phdr - ctx->phdrs].p_memsz += ctx->inject_size;
+		[ctx->inject_phdr_index].p_memsz += ctx->inject_size;
 	return (0);
 }
 #endif

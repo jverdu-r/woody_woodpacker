@@ -53,7 +53,7 @@ static int	dispatch_parser(int fd)
 		if (pack_elf64(fd, &ctx64) < 0)
 		{
 			cleanup_elf_ctx(&ctx64);
-			return (-1);
+			return (-3);
 		}
 		cleanup_elf_ctx(&ctx64);
 		return (0);
@@ -71,7 +71,7 @@ static int	dispatch_parser(int fd)
 		if (pack_elf32(fd, &ctx32) < 0)
 		{
 			cleanup_elf32_ctx(&ctx32);
-			return (-1);
+			return (-3);
 		}
 		cleanup_elf32_ctx(&ctx32);
 		return (0);
@@ -100,6 +100,8 @@ int	main(int argc, char **argv)
 		{
 			if (res == -2)
 				printf("File architecture not suported. x86_64 only\n");
+			else if (res == -3)
+				printf("Packing failed: %s\n", get_pack_error());
 			else
 				printf("Packing failed: %s\n", get_parse_error());
 			close(fd);

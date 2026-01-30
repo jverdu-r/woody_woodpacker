@@ -82,7 +82,10 @@ int	parse_elf64(int fd, t_elf_ctx *ctx)
 	{
 		if (ctx->phdrs[idx].p_type == PT_LOAD
 			&& (ctx->phdrs[idx].p_flags & PF_X))
+		{
 			ctx->text_phdr = &ctx->phdrs[idx];
+			ctx->text_phdr_index = idx;
+		}
 		idx++;
 	}
 	if (!ctx->text_phdr)
@@ -121,6 +124,8 @@ int	parse_elf64(int fd, t_elf_ctx *ctx)
 		RETURN_ERR(".text not found");
 	ctx->entry_in_text = (ctx->ehdr->e_entry >= ctx->text_vaddr
 		&& ctx->ehdr->e_entry < ctx->text_vaddr + ctx->text_size);
+	ctx->inject_phdr_index = ctx->text_phdr_index;
+	ctx->inject_make_exec = 0;
 	return (0);
 }
 
@@ -132,13 +137,13 @@ int	select_injection_site64(t_elf_ctx *ctx, size_t stub_size)
 	int			idx;
 
 	if (!ctx || !ctx->text_phdr)
-		return (-1);
+		RETURN_ERR("invalid context");
 	if (stub_size == 0)
-		return (-1);
+		RETURN_ERR("invalid stub size");
 	file_off = (size_t)ctx->text_phdr->p_offset
 		+ (size_t)ctx->text_phdr->p_filesz;
 	if (file_off > ctx->file_size)
-		return (-1);
+		RETURN_ERR("inject offset out of bounds");
 	next_off = (size_t)-1;
 	idx = 0;
 	while (idx < ctx->ehdr->e_phnum)
@@ -150,8 +155,13 @@ int	select_injection_site64(t_elf_ctx *ctx, size_t stub_size)
 			next_off = seg_off;
 		idx++;
 	}
+	ctx->inject_shift = 0;
+	ctx->inject_phdr_index = ctx->text_phdr_index;
+	ctx->inject_make_exec = 0;
 	if (next_off != (size_t)-1 && file_off + stub_size > next_off)
-		return (-1);
+	{
+		ctx->inject_shift = 1;
+	}
 	vaddr = (Elf64_Addr)ctx->text_phdr->p_vaddr
 		+ (Elf64_Addr)ctx->text_phdr->p_filesz;
 	ctx->inject_off = file_off;
@@ -206,7 +216,10 @@ int	parse_elf32(int fd, t_elf32_ctx *ctx)
 	{
 		if (ctx->phdrs[idx].p_type == PT_LOAD
 			&& (ctx->phdrs[idx].p_flags & PF_X))
+		{
 			ctx->text_phdr = &ctx->phdrs[idx];
+			ctx->text_phdr_index = idx;
+		}
 		idx++;
 	}
 	if (!ctx->text_phdr)
@@ -245,6 +258,8 @@ int	parse_elf32(int fd, t_elf32_ctx *ctx)
 		RETURN_ERR(".text not found");
 	ctx->entry_in_text = (ctx->ehdr->e_entry >= ctx->text_vaddr
 		&& ctx->ehdr->e_entry < ctx->text_vaddr + ctx->text_size);
+	ctx->inject_phdr_index = ctx->text_phdr_index;
+	ctx->inject_make_exec = 0;
 	return (0);
 }
 
@@ -257,13 +272,13 @@ int	select_injection_site32(t_elf32_ctx *ctx, size_t stub_size)
 	int			idx;
 
 	if (!ctx || !ctx->text_phdr)
-		return (-1);
+		RETURN_ERR("invalid context");
 	if (stub_size == 0)
-		return (-1);
+		RETURN_ERR("invalid stub size");
 	file_off = (size_t)ctx->text_phdr->p_offset
 		+ (size_t)ctx->text_phdr->p_filesz;
 	if (file_off > ctx->file_size)
-		return (-1);
+		RETURN_ERR("inject offset out of bounds");
 	next_off = (size_t)-1;
 	idx = 0;
 	while (idx < ctx->ehdr->e_phnum)
@@ -275,8 +290,39 @@ int	select_injection_site32(t_elf32_ctx *ctx, size_t stub_size)
 			next_off = seg_off;
 		idx++;
 	}
+	ctx->inject_shift = 0;
+	ctx->inject_phdr_index = ctx->text_phdr_index;
+	ctx->inject_make_exec = 0;
 	if (next_off != (size_t)-1 && file_off + stub_size > next_off)
-		return (-1);
+	{
+		int		last_idx;
+		size_t	last_off;
+
+		last_idx = -1;
+		last_off = 0;
+		idx = 0;
+		while (idx < ctx->ehdr->e_phnum)
+		{
+			if (ctx->phdrs[idx].p_type == PT_LOAD
+				&& (size_t)ctx->phdrs[idx].p_offset >= last_off)
+			{
+				last_off = (size_t)ctx->phdrs[idx].p_offset;
+				last_idx = idx;
+			}
+			idx++;
+		}
+		if (last_idx < 0)
+			RETURN_ERR("no PT_LOAD for fallback");
+		ctx->inject_phdr_index = last_idx;
+		ctx->inject_make_exec = 1;
+		ctx->inject_shift = 0;
+		ctx->inject_off = (size_t)ctx->phdrs[last_idx].p_offset
+			+ (size_t)ctx->phdrs[last_idx].p_filesz;
+		ctx->inject_vaddr = (Elf32_Addr)ctx->phdrs[last_idx].p_vaddr
+			+ (Elf32_Addr)ctx->phdrs[last_idx].p_filesz;
+		ctx->inject_size = stub_size;
+		return (0);
+	}
 	vaddr = (Elf32_Addr)ctx->text_phdr->p_vaddr
 		+ (Elf32_Addr)ctx->text_phdr->p_filesz;
 	ctx->inject_off = file_off;
