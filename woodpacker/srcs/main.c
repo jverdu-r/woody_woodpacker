@@ -27,7 +27,7 @@ static int	read_ident(int fd, unsigned char *ident)
 	return (0);
 }
 
-static int	dispatch_parser(int fd)
+static int	dispatch_parser(int fd, const unsigned char *key_override)
 {
 	unsigned char	ident[EI_NIDENT];
 	t_elf_ctx		ctx64;
@@ -50,7 +50,7 @@ static int	dispatch_parser(int fd)
 			cleanup_elf_ctx(&ctx64);
 			return (-1);
 		}
-		if (pack_elf64(fd, &ctx64) < 0)
+		if (pack_elf64(fd, &ctx64, key_override) < 0)
 		{
 			cleanup_elf_ctx(&ctx64);
 			return (-3);
@@ -68,7 +68,7 @@ static int	dispatch_parser(int fd)
 			cleanup_elf32_ctx(&ctx32);
 			return (-1);
 		}
-		if (pack_elf32(fd, &ctx32) < 0)
+		if (pack_elf32(fd, &ctx32, key_override) < 0)
 		{
 			cleanup_elf32_ctx(&ctx32);
 			return (-3);
@@ -83,19 +83,37 @@ static int	dispatch_parser(int fd)
 int	main(int argc, char **argv)
 {
 	int	fd;
+	unsigned char	key[WOODY_KEY_SIZE];
+	const unsigned char	*key_override;
+	const char	*input_path;
 
-	if (argc != 2)
+	key_override = NULL;
+	input_path = NULL;
+	if (argc == 2)
+		input_path = argv[1];
+	else if (argc == 4 && ft_strcmp(argv[1], "-k") == 0)
+	{
+		if (parse_hex_key(argv[2], key) < 0)
+		{
+			printf("Invalid key format. Expected 32 hex chars.\n");
+			return (1);
+		}
+		key_override = key;
+		input_path = argv[3];
+	}
+	else
 	{
 		printf("Usage: %s <elf_binary>\n", argv[0]);
+		printf("       %s -k <hexkey> <elf_binary>\n", argv[0]);
 		return (1);
 	}
-	fd = open_input_file(argv[1]);
+	fd = open_input_file(input_path);
 	if (fd < 0)
 		return (1);
 	{
 		int	res;
 
-		res = dispatch_parser(fd);
+		res = dispatch_parser(fd, key_override);
 		if (res < 0)
 		{
 			if (res == -2)

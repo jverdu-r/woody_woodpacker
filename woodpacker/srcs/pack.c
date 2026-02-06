@@ -126,6 +126,46 @@ static int	generate_key(unsigned char *key)
 	return (0);
 }
 
+static int	hex_nibble(char c)
+{
+	if (c >= '0' && c <= '9')
+		return (c - '0');
+	if (c >= 'a' && c <= 'f')
+		return (10 + (c - 'a'));
+	if (c >= 'A' && c <= 'F')
+		return (10 + (c - 'A'));
+	return (-1);
+}
+
+int	parse_hex_key(const char *hex, unsigned char *out_key)
+{
+	size_t	len;
+	size_t	idx;
+	int		hi;
+	int		lo;
+	int		start;
+
+	if (!hex || !out_key)
+		return (-1);
+	start = 0;
+	if (hex[0] == '0' && (hex[1] == 'x' || hex[1] == 'X'))
+		start = 2;
+	len = ft_strlen(hex + start);
+	if (len != (WOODY_KEY_SIZE * 2))
+		return (-1);
+	idx = 0;
+	while (idx < WOODY_KEY_SIZE)
+	{
+		hi = hex_nibble(hex[start + (idx * 2)]);
+		lo = hex_nibble(hex[start + (idx * 2) + 1]);
+		if (hi < 0 || lo < 0)
+			return (-1);
+		out_key[idx] = (unsigned char)((hi << 4) | lo);
+		idx++;
+	}
+	return (0);
+}
+
 static void	print_key(const unsigned char *key)
 {
 	int	idx;
@@ -334,7 +374,7 @@ static int	apply_injection32(unsigned char **buf, size_t *size,
 }
 #endif
 
-int	pack_elf64(int fd, t_elf_ctx *ctx)
+int	pack_elf64(int fd, t_elf_ctx *ctx, const unsigned char *key_override)
 {
 	unsigned char	*buf;
 	unsigned char	key[WOODY_KEY_SIZE];
@@ -375,7 +415,9 @@ int	pack_elf64(int fd, t_elf_ctx *ctx)
 		free(buf);
 		return (-1);
 	}
-	if (generate_key(key) < 0)
+	if (key_override)
+		ft_memcpy(key, key_override, WOODY_KEY_SIZE);
+	else if (generate_key(key) < 0)
 	{
 		g_pack_error = "key generation failed";
 		free(buf);
@@ -429,7 +471,7 @@ int	pack_elf64(int fd, t_elf_ctx *ctx)
 }
 
 #ifdef BONUS
-int	pack_elf32(int fd, t_elf32_ctx *ctx)
+int	pack_elf32(int fd, t_elf32_ctx *ctx, const unsigned char *key_override)
 {
 	unsigned char	*buf;
 	unsigned char	key[WOODY_KEY_SIZE];
@@ -470,7 +512,9 @@ int	pack_elf32(int fd, t_elf32_ctx *ctx)
 		free(buf);
 		return (-1);
 	}
-	if (generate_key(key) < 0)
+	if (key_override)
+		ft_memcpy(key, key_override, WOODY_KEY_SIZE);
+	else if (generate_key(key) < 0)
 	{
 		g_pack_error = "key generation failed";
 		free(buf);

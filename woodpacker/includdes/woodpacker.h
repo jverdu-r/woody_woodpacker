@@ -63,10 +63,12 @@ int	select_injection_site64(t_elf_ctx *ctx, size_t stub_size);
 #ifdef BONUS
 int	select_injection_site32(t_elf32_ctx *ctx, size_t stub_size);
 #endif
-int	pack_elf64(int fd, t_elf_ctx *ctx);
+int	pack_elf64(int fd, t_elf_ctx *ctx, const unsigned char *key_override);
 #ifdef BONUS
-int	pack_elf32(int fd, t_elf32_ctx *ctx);
+int	pack_elf32(int fd, t_elf32_ctx *ctx, const unsigned char *key_override);
 #endif
+
+int	parse_hex_key(const char *hex, unsigned char *out_key);
 
 const char	*get_pack_error(void);
 const char	*get_parse_error(void);
